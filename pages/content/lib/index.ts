@@ -12,6 +12,8 @@ async function initializeObserver() {
   const appStorageData = await appStorage.get();
   const { disableAds, disableVideos } = appStorageData;
 
+  console.log({ disableAds, disableVideos });
+
   const observer = new MutationObserver(() => {
     // Select the div element with the specified aria-label
     const timelineDiv = document.querySelector('div[aria-label="Timeline: Your Home Timeline"]');

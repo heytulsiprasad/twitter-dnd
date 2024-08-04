@@ -1,62 +1,72 @@
 import '@src/Popup.css';
 import { useStorageSuspense, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import { ComponentPropsWithoutRef } from 'react';
+import { appStorage } from '@extension/storage';
+import logo from '../public/icon.png';
 
 const Popup = () => {
-  const theme = useStorageSuspense(exampleThemeStorage);
-  const isLight = theme === 'light';
-  const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
-
-  const injectContentScript = async () => {
-    const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
-
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id! },
-      /**
-       * If you are using Firefox, you should use a relative path. :(
-       * @example
-       * files: ['../content-runtime/index.iife.js'],
-       */
-      files: ['content-runtime/index.iife.js'],
-    });
-  };
+  const appStorageData = useStorageSuspense(appStorage);
+  console.log(appStorageData);
 
   return (
-    <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
-      <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
-        <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>pages/popup/src/Popup.tsx</code>
-        </p>
-        <button
-          className={
-            'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-            (isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white')
-          }
-          onClick={injectContentScript}>
-          Click to inject Content Script
-        </button>
-        <ToggleButton>Toggle theme</ToggleButton>
-      </header>
+    <div className="p-4 bg-base-100">
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-x-2">
+        <span>Twitter DND</span>
+        <img src={logo} alt="logo" className="w-8 aspect-square block" />
+      </h1>
+
+      {/* Show time saved */}
+      <p className="mb-4">
+        Time saved: <span className="font-semibold">{appStorageData.removedVideos.size ?? 0}</span> seconds
+      </p>
+
+      {/* Disable videos checkbox */}
+      <div className="form-control mb-4">
+        <label className="cursor-pointer label">
+          <span className="label-text">Disable videos</span>
+          <input
+            type="checkbox"
+            checked={appStorageData.disableVideos}
+            onChange={appStorage.toggleDisableVideos}
+            className="checkbox checkbox-primary"
+          />
+        </label>
+      </div>
+
+      {/* Disable ads checkbox */}
+      <div className="form-control mb-4">
+        <label className="cursor-pointer label">
+          <span className="label-text">Disable ads</span>
+          <input
+            type="checkbox"
+            checked={appStorageData.disableAds}
+            onChange={appStorage.toggleDisableAds}
+            className="checkbox checkbox-primary"
+          />
+        </label>
+      </div>
+
+      {/* Add a button to reload page, if config changes */}
+      <p className="mb-4 text-sm text-gray-500">You must reload the page in case of changes</p>
+      <button
+        className="btn btn-primary w-full"
+        onClick={() => {
+          // Reload the active tab here
+          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            if (tabs[0]) {
+              chrome.tabs.reload(() => tabs[0].id);
+            }
+          });
+
+          // Close the popup
+          window.close();
+        }}>
+        Reload
+      </button>
     </div>
   );
 };
 
-const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
-  const theme = useStorageSuspense(exampleThemeStorage);
-  return (
-    <button
-      className={
-        props.className +
-        ' ' +
-        'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-        (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
-      }
-      onClick={exampleThemeStorage.toggle}>
-      {props.children}
-    </button>
-  );
-};
-
-export default withErrorBoundary(withSuspense(Popup, <div> Loading ... </div>), <div> Error Occur </div>);
+export default withErrorBoundary(
+  withSuspense(Popup, <div className="p-4">Loading...</div>),
+  <div className="p-4 text-red-500">Error Occur</div>,
+);
